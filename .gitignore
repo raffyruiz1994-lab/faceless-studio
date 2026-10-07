@@ -1,0 +1,15 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# App runtime (generated on the VM, never commit)
+jobs/
+settings.json
+*.log
+.env
+
+# OS
+.DS_Store
+Thumbs.db

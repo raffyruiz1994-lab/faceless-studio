@@ -1,0 +1,17 @@
+services:
+  faceless-studio:
+    build: .
+    container_name: faceless-studio
+    ports:
+      - "8000:8000"
+    volumes:
+      # persist jobs, videos and settings across restarts
+      - ./jobs:/app/jobs
+      - ./settings.json:/app/settings.json
+    restart: unless-stopped
+    # give ffmpeg room; adjust to your VM
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: 8G

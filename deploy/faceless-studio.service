@@ -1,0 +1,15 @@
+[Unit]
+Description=Faceless Studio - generador de documentales faceless
+After=network.target
+
+[Service]
+Type=simple
+User=rafael
+WorkingDirectory=/home/rafael/faceless-studio
+Environment="PATH=/home/rafael/faceless-studio/venv/bin:/usr/bin"
+ExecStart=/home/rafael/faceless-studio/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
+Restart=on-failure
+# Ajusta User/WorkingDirectory a tu usuario real en la VM
+
+[Install]
+WantedBy=multi-user.target
