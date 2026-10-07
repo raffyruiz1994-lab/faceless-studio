@@ -189,6 +189,22 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;border:none;border-ra
 .spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(0,0,0,.3);border-top-color:#241300;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-3px}
 @keyframes sp{to{transform:rotate(360deg)}}
 .divider{height:1px;background:linear-gradient(90deg,transparent,var(--line2),transparent);margin:18px 0}
+/* ===== Mission Control ===== */
+.mchead{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:12px}
+.mstage{position:relative;border-radius:20px;overflow:hidden;border:1px solid var(--line2);
+  box-shadow:0 24px 70px rgba(0,0,0,.55),0 0 60px rgba(139,123,255,.07);background:#05070c}
+#mcanvas{display:block;width:100%;height:auto}
+.scan{position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(255,255,255,.018) 0 1px,transparent 1px 4px);}
+.mstage::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.5) 100%)}
+.mstats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:18px 0 6px}
+.mstats .mstat{background:var(--glass);backdrop-filter:blur(16px);border:1px solid var(--line);
+  border-radius:15px;padding:16px;text-align:center;animation:cardIn .5s backwards}
+.mstats .mstat:nth-child(2){animation-delay:.06s}.mstats .mstat:nth-child(3){animation-delay:.12s}.mstats .mstat:nth-child(4){animation-delay:.18s}
+.mstats .l{font-size:10.5px;letter-spacing:2px;color:var(--dim);font-weight:800}
+.mstats .n{font-size:27px;font-weight:800;margin-top:6px;font-variant-numeric:tabular-nums}
+@media(max-width:760px){.mstats{grid-template-columns:1fr 1fr}}
 @media(max-width:760px){.side{width:66px;padding:18px 8px}.side .lbl,.logo span,.side .foot{display:none}.logo{justify-content:center;padding-bottom:14px}.main{padding:20px}.row,.styles{grid-template-columns:1fr}h1{font-size:24px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}}
 </style>
@@ -203,6 +219,7 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;border:none;border-ra
     <button class="navbtn" data-view="ideas"><span class="ico">💡</span><span class="lbl">Ideas IA</span></button>
     <button class="navbtn" data-view="videos"><span class="ico">📼</span><span class="lbl">Mis videos</span></button>
     <button class="navbtn" data-view="ajustes"><span class="ico">⚙️</span><span class="lbl">Ajustes</span></button>
+    <button class="navbtn" data-view="mission"><span class="ico">🛰️</span><span class="lbl">Mission Control</span></button>
     <div class="foot">
       <div class="statusline"><div class="pulse"></div><span>Servidor local</span></div>
       <div style="margin-top:8px;line-height:1.5">Solo red local · tus keys nunca salen de aquí</div>
@@ -345,6 +362,27 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;border:none;border-ra
       </div>
       <button class="btn" id="btnSave">💾 Guardar ajustes</button>
       <p class="hint">Consejo: activa la facturación en Google AI Studio para que Nano Banana genere imágenes (el plan gratis tiene cuota cero).</p>
+    </section>
+
+    <section class="view" id="view-mission">
+      <div class="mchead">
+        <div>
+          <h1 style="margin-bottom:2px">🛰️ Mission Control</h1>
+          <p class="sub" style="margin-bottom:0">Visualización en vivo del pipeline de agentes · <span style="color:var(--green)">● MAIN NET</span></p>
+        </div>
+        <div class="clock" id="mclock">--:--:--</div>
+      </div>
+      <div class="mstage">
+        <canvas id="mcanvas" width="1100" height="600"></canvas>
+        <div class="scan"></div>
+      </div>
+      <div class="mstats">
+        <div class="mstat"><div class="l">JOBS ACTIVOS</div><div class="n" id="msActive" style="color:var(--blue)">0</div></div>
+        <div class="mstat"><div class="l">COMPLETADOS</div><div class="n" id="msDone" style="color:var(--green)">0</div></div>
+        <div class="mstat"><div class="l">IMÁGENES GEN.</div><div class="n" id="msImgs" style="color:var(--acc)">0</div></div>
+        <div class="mstat"><div class="l">COSTO TOTAL</div><div class="n" id="msCost" style="color:var(--violet)">$0.00</div></div>
+      </div>
+      <p class="hint">Cada nodo es un agente del pipeline. Los puntos de luz son trabajos viajando entre agentes. Sin trabajos activos, la sala muestra una simulación ambiental.</p>
     </section>
 
   </main>
@@ -504,6 +542,156 @@ async function loadJobs(){
     }).join("");
   }catch(e){ box.innerHTML='<div class="empty">Error cargando videos.</div>'; }
 }
+
+/* ================= MISSION CONTROL ================= */
+const MSTAGES=[
+ {id:'ideas',   n:'01', name:'IDEAS',     role:'role: trend_scanner', color:'#9a7bff', fx:.10},
+ {id:'script',  n:'02', name:'GUION',     role:'role: scriptwriter',  color:'#4da3ff', fx:.30},
+ {id:'images',  n:'03', name:'IMÁGENES',  color:'#f5b942', role:'role: art_director', fx:.50},
+ {id:'voice',   n:'04', name:'VOZ',       role:'role: narrator',     color:'#3ddbd9', fx:.70},
+ {id:'assemble',n:'05', name:'ENSAMBLAJE',role:'role: editor',       color:'#3ddc84', fx:.90},
+];
+const MSTAGE_IDX={script:1,images:2,voice:3,assemble:4,done:5,error:5};
+const mcv=$('mcanvas'), mctx=mcv.getContext('2d');
+const MW=mcv.width, MH=mcv.height, MY=MH*0.44;
+const mpos=i=>({x:MSTAGES[i].fx*MW, y:MY});
+let mParts=[], mPkts=[], mJobs=[], mDemoT=0;
+const mKw=[['role',.06,.16],['objective',.30,.10],['context',.55,.14],['rules',.78,.10],['memory',.16,.78],['tools',.45,.84],['start',.72,.80],['agents',.90,.72]];
+for(let i=0;i<110;i++) mParts.push({x:Math.random()*MW,y:Math.random()*MH,vx:(Math.random()-.5)*.28,vy:(Math.random()-.5)*.22,r:Math.random()*1.8+.4,a:Math.random()*.5+.15});
+function mNodeXY(i){ return mpos(i); }
+function mDraw(t){
+  mctx.clearRect(0,0,MW,MH);
+  const bg=mctx.createRadialGradient(MW/2,MY,60,MW/2,MY,620);
+  bg.addColorStop(0,'#0a0f1c'); bg.addColorStop(1,'#05070c');
+  mctx.fillStyle=bg; mctx.fillRect(0,0,MW,MH);
+  // partículas de fondo
+  mctx.fillStyle='#8b96b8';
+  mParts.forEach(p=>{
+    p.x+=p.vx; p.y+=p.vy;
+    if(p.x<0)p.x=MW; if(p.x>MW)p.x=0; if(p.y<0)p.y=MH; if(p.y>MH)p.y=0;
+    mctx.globalAlpha=p.a*.5; mctx.beginPath(); mctx.arc(p.x,p.y,p.r,0,7); mctx.fill();
+  });
+  mctx.globalAlpha=1;
+  // keywords flotantes
+  mctx.font='600 13px ui-monospace,monospace'; mctx.textAlign='center';
+  mKw.forEach(([w,fx,fy],i)=>{
+    mctx.globalAlpha=.16+.08*Math.sin(t/1400+i*2);
+    mctx.fillStyle='#9a7bff';
+    mctx.fillText(w, fx*MW, fy*MH+6*Math.sin(t/2000+i));
+  });
+  mctx.globalAlpha=1;
+  // aristas
+  for(let i=0;i<MSTAGES.length-1;i++){
+    const a=mNodeXY(i), b=mNodeXY(i+1);
+    const grad=mctx.createLinearGradient(a.x,a.y,b.x,b.y);
+    grad.addColorStop(0,MSTAGES[i].color+'55'); grad.addColorStop(1,MSTAGES[i+1].color+'55');
+    mctx.strokeStyle=grad; mctx.lineWidth=1.6;
+    mctx.setLineDash([7,9]); mctx.lineDashOffset=-t/60;
+    mctx.beginPath(); mctx.moveTo(a.x,a.y); mctx.lineTo(b.x,b.y); mctx.stroke();
+    mctx.setLineDash([]);
+  }
+  // estado por jobs
+  const active={};
+  mJobs.forEach(j=>{
+    if(j.state!=='running') return;
+    const si=MSTAGE_IDX[j.stage]??1;
+    active[si]=active[si]||[];
+    active[si].push(j);
+  });
+  // nodos
+  MSTAGES.forEach((s,i)=>{
+    const {x,y}=mNodeXY(i);
+    const jobs=active[i]||[];
+    const isActive=jobs.length>0;
+    const pulse=isActive?1+.14*Math.sin(t/280):1;
+    const R=(isActive?30:22)*pulse;
+    // halo
+    const halo=mctx.createRadialGradient(x,y,4,x,y,R*3.2);
+    halo.addColorStop(0,s.color+(isActive?'aa':'44')); halo.addColorStop(1,s.color+'00');
+    mctx.fillStyle=halo; mctx.beginPath(); mctx.arc(x,y,R*3.2,0,7); mctx.fill();
+    // anillo
+    mctx.strokeStyle=s.color+(isActive?'':'88'); mctx.lineWidth=isActive?2.5:1.5;
+    mctx.beginPath(); mctx.arc(x,y,R,0,7); mctx.stroke();
+    if(isActive){ // anillo de progreso del primer job
+      const p=mJobs.find(j=>j.state==='running'&&(MSTAGE_IDX[j.stage]??1)===i);
+      const pr=p?p.progress||0:0;
+      mctx.strokeStyle='#ffffff'; mctx.lineWidth=3;
+      mctx.beginPath(); mctx.arc(x,y,R+7,-Math.PI/2,-Math.PI/2+pr*Math.PI*2); mctx.stroke();
+    }
+    // núcleo
+    mctx.save(); mctx.shadowColor=s.color; mctx.shadowBlur=isActive?26:12;
+    mctx.fillStyle=s.color; mctx.beginPath(); mctx.arc(x,y,R*0.42*pulse,0,7); mctx.fill();
+    mctx.restore();
+    // etiquetas
+    mctx.textAlign='center';
+    mctx.fillStyle='rgba(255,255,255,.38)'; mctx.font='700 11px ui-monospace,monospace';
+    mctx.fillText(s.n, x, y-R-14);
+    mctx.fillStyle=isActive?'#fff':'rgba(255,255,255,.85)'; mctx.font='800 15px sans-serif';
+    mctx.fillText(s.name, x, y+R+24);
+    mctx.fillStyle='rgba(139,150,184,.75)'; mctx.font='11px ui-monospace,monospace';
+    mctx.fillText(s.role, x, y+R+41);
+    // tags de jobs en este nodo
+    jobs.slice(0,2).forEach((j,k)=>{
+      const label=((j.spec&&j.spec.topic)||j.id||'').slice(0,20);
+      const pct=Math.round((j.progress||0)*100);
+      mctx.font='700 11.5px sans-serif';
+      const tw=mctx.measureText(label+' '+pct+'%').width+20;
+      const ty=y-R-46-k*30;
+      mctx.fillStyle='rgba(10,14,22,.92)';
+      mctx.strokeStyle=s.color; mctx.lineWidth=1;
+      mctx.beginPath(); mctx.roundRect(x-tw/2,ty,tw,22,8); mctx.fill(); mctx.stroke();
+      mctx.fillStyle='#fff'; mctx.fillText(label+'  '+pct+'%', x, ty+15);
+    });
+  });
+  // paquetes de datos
+  mPkts.forEach(p=>{
+    p.t+=p.sp;
+    if(p.t>=1){ p.t=0; p.from=Math.floor(Math.random()*(MSTAGES.length-1)); }
+    const a=mNodeXY(p.from), b=mNodeXY(p.from+1);
+    const x=a.x+(b.x-a.x)*p.t, y=a.y+(b.y-a.y)*p.t+Math.sin(p.t*Math.PI)*-26;
+    mctx.save(); mctx.shadowColor=p.c; mctx.shadowBlur=12;
+    mctx.fillStyle=p.c; mctx.beginPath(); mctx.arc(x,y,3.4,0,7); mctx.fill(); mctx.restore();
+  });
+  // título superior estilo consola
+  mctx.textAlign='left'; mctx.font='700 12px ui-monospace,monospace';
+  mctx.fillStyle='rgba(47,210,125,.85)';
+  mctx.fillText('● LIVE FEED · agents: '+MSTAGES.length+' · packets: '+mPkts.length, 22, 32);
+  mctx.textAlign='right'; mctx.fillStyle='rgba(139,150,184,.6)';
+  mctx.fillText('FACELESS STUDIO · MAIN NET', MW-22, 32);
+}
+function mTick(){
+  const vis=$('view-mission').classList.contains('active');
+  if(vis) mDraw(performance.now());
+  requestAnimationFrame(mTick);
+}
+async function mPoll(){
+  try{
+    const r=await fetch('/api/jobs'); const j=await r.json();
+    mJobs=j.jobs||[];
+  }catch(e){
+    // modo demo ambiental (sin servidor): un job simulado ciclando etapas
+    mDemoT++;
+    const stages=['script','images','voice','assemble'];
+    const st=stages[Math.floor(mDemoT/3)%4];
+    mJobs=[{id:'demo',state:'running',stage:st,progress:((mDemoT%3)/3)*0.9+0.05,
+      spec:{topic:'Demo ambiental · El misterio de las pirámides'},detail:'simulación'}];
+  }
+  const act=mJobs.filter(j=>j.state==='running').length;
+  const done=mJobs.filter(j=>j.state==='done').length;
+  let imgs=0,cost=0;
+  mJobs.forEach(j=>{ if(j.cost_estimate){imgs+=j.cost_estimate.images||0;cost+=j.cost_estimate.total_usd||0;} });
+  $('msActive').textContent=act; $('msDone').textContent=done;
+  $('msImgs').textContent=imgs; $('msCost').textContent='$'+cost.toFixed(2);
+  // mantener paquetes: base ambiental + extra por jobs activos
+  const want=6+act*4;
+  while(mPkts.length<want) mPkts.push({from:Math.floor(Math.random()*4),t:Math.random(),sp:.004+Math.random()*.006,c:['#9a7bff','#4da3ff','#f5b942','#3ddbd9','#3ddc84'][Math.floor(Math.random()*5)]});
+  if(mPkts.length>want+8) mPkts.length=want+8;
+}
+function mClock(){ const d=new Date(),f=n=>String(n).padStart(2,'0');
+  const e=$('mclock'); if(e) e.textContent=`${f(d.getHours())}:${f(d.getMinutes())}:${f(d.getSeconds())}`; }
+mPoll(); setInterval(mPoll,3000);
+setInterval(mClock,1000); mClock();
+requestAnimationFrame(mTick);
 
 loadSettings(); updateCost();
 setInterval(()=>{ if($("view-videos").classList.contains("active")) loadJobs(); },8000);
