@@ -164,11 +164,12 @@ def render_segment(image: str, audio: str, duration: float, dest: str, zoom_in: 
 
 
 def assemble(job_dir: str, segments: list[dict], images: list[str], audios: list[dict],
-            output_path: str, progress_cb=None) -> dict:
+            output_path: str, progress_cb=None, subtitles: bool = True) -> dict:
     """
     segments: script segments (narration text).
     images:   one image path per segment.
     audios:   [{path, duration}] per segment.
+    subtitles: burn karaoke .ass subtitles when True.
     """
     seg_dir = os.path.join(job_dir, "segments")
     os.makedirs(seg_dir, exist_ok=True)
@@ -198,21 +199,25 @@ def assemble(job_dir: str, segments: list[dict], images: list[str], audios: list
     _run(["ffmpeg", "-y", "-v", "error", "-f", "concat", "-safe", "0",
           "-i", lst, "-c", "copy", concat_mp4])
 
-    # subtitles
-    ass_path = os.path.join(job_dir, "subs.ass")
-    build_subtitles(timed, ass_path)
+    # subtitles (optional)
+    if subtitles:
+        ass_path = os.path.join(job_dir, "subs.ass")
+        build_subtitles(timed, ass_path)
+        vf_sub = f"[0:v]subtitles='{ass_path}'[v]"
+    else:
+        vf_sub = "[0:v]copy[v]"
 
     # music bed
     music_wav = os.path.join(job_dir, "music.wav")
     make_music_bed(t, music_wav)
 
-    # final mix + burn subtitles
+    # final mix (+ burn subtitles when enabled)
     _run([
         "ffmpeg", "-y", "-v", "error",
         "-i", concat_mp4, "-i", music_wav,
         "-filter_complex",
         "[0:a][1:a]amix=inputs=2:duration=first:dropout_transition=0:weights=1 0.12[a];"
-        f"[0:v]subtitles='{ass_path}'[v]",
+        f"{vf_sub}",
         "-map", "[v]", "-map", "[a]",
         "-c:v", "libx264", "-preset", "medium", "-crf", "20",
         "-c:a", "aac", "-b:a", "160k",

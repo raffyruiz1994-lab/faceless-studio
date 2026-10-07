@@ -146,7 +146,8 @@ def run_demo(jobs_root: str, job_id: str, spec: dict | None = None) -> None:
         result = assemble.assemble(
             job_dir, DEMO_SCRIPT["segments"], img_paths, audios, out,
             progress_cb=lambda d, t, stage_detail="": set_status(
-                "running", "assemble", 0.55 + 0.43 * d / t, f"Segmento {d}/{t}"))
+                "running", "assemble", 0.55 + 0.43 * d / t, f"Segmento {d}/{t}"),
+            subtitles=(spec or {}).get("subtitles", True))
 
         with open(os.path.join(job_dir, "REVIEW_CHECKLIST.md"), "w", encoding="utf-8") as f:
             f.write("# Demo checklist\n\nThis is a demo render (placeholder images, silent audio).\n"

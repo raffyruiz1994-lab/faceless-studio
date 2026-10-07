@@ -111,6 +111,23 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 .styleopt .t{font-weight:800;margin-bottom:5px;font-size:16px}
 .styleopt .d{font-size:13px;color:var(--muted);line-height:1.5}
 
+/* ===== Toggle switch ===== */
+.togglerow{display:flex;align-items:center;justify-content:space-between;gap:14px;
+  background:rgba(10,13,18,.5);border:1px solid var(--line);border-radius:14px;
+  padding:15px 18px;margin-top:18px;transition:border-color .2s}
+.togglerow:hover{border-color:var(--line2)}
+.togglerow .tt{font-weight:800;font-size:15px}
+.togglerow .dd{font-size:13px;color:var(--muted);margin-top:3px}
+.switch{position:relative;width:56px;height:30px;flex:none;cursor:pointer}
+.switch input{opacity:0;width:0;height:0}
+.switch .track{position:absolute;inset:0;border-radius:20px;background:rgba(255,255,255,.12);
+  border:1px solid var(--line2);transition:all .25s}
+.switch .track::before{content:"";position:absolute;width:22px;height:22px;left:3px;top:3px;border-radius:50%;
+  background:#8a93a3;transition:all .25s cubic-bezier(.3,1.3,.5,1)}
+.switch input:checked + .track{background:linear-gradient(135deg,var(--acc),var(--ember));
+  border-color:transparent;box-shadow:0 0 16px rgba(245,185,66,.45)}
+.switch input:checked + .track::before{transform:translateX(26px);background:#fff8e8}
+
 /* ===== Range ===== */
 input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:8px;border-radius:6px;outline:none;
   background:linear-gradient(90deg,var(--acc) var(--fill,27%),rgba(255,255,255,.12) var(--fill,27%));cursor:pointer;margin-top:8px}
@@ -238,6 +255,16 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;border:none;border-ra
             <label>ID de voz (Fish Audio, opcional)</label>
             <input type="text" id="voice_id" placeholder="Vacío = voz por defecto">
           </div>
+        </div>
+        <div class="togglerow">
+          <div>
+            <div class="tt">💬 Subtítulos karaoke</div>
+            <div class="dd">Texto animado palabra por palabra sobre el video.</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="subToggle" checked>
+            <span class="track"></span>
+          </label>
         </div>
         <div class="costbox">Costo estimado: <b id="costEst">—</b> <span class="hint" style="display:inline">· se calcula exacto al generar el guion</span></div>
         <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap">
@@ -395,7 +422,8 @@ async function startJob(demo){
   try{
     const j=await api("/api/jobs","POST",{topic: demo?"demo":topic, language:$("language").value,
       minutes:+minInput.value, image_model:$("image_model").value||undefined,
-      voice_id:$("voice_id").value.trim()||undefined, style:curStyle, demo});
+      voice_id:$("voice_id").value.trim()||undefined, style:curStyle,
+      subtitles:$("subToggle").checked, demo});
     toast(demo?"🧪 Demo iniciada":"🚀 Video en producción");
     showProgress(j.id);
   }catch(e){ toast("❌ "+e.message); }
@@ -471,7 +499,7 @@ async function loadJobs(){
       if(st==="error") inner+=`<div class="err">${esc(j.error||"Error desconocido")}</div>`;
       if(st==="done") inner+=`<video controls preload="metadata" src="/api/jobs/${j.id}/video"></video>
         <div style="margin-top:12px"><a class="btn small ghost" href="/api/jobs/${j.id}/video" download>⬇ Descargar MP4</a></div>`;
-      inner+=`<div class="meta">${date}${dur}${cost} · estilo ${(j.spec&&j.spec.style)==="cinematic"?"cinematográfico":"stick figure"}</div>`;
+      inner+=`<div class="meta">${date}${dur}${cost} · estilo ${(j.spec&&j.spec.style)==="cinematic"?"cinematográfico":"stick figure"}${(j.spec&&j.spec.subtitles===false)?" · sin subtítulos":""}</div>`;
       return `<div class="job" style="animation-delay:${i*60}ms">${inner}</div>`;
     }).join("");
   }catch(e){ box.innerHTML='<div class="empty">Error cargando videos.</div>'; }

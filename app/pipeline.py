@@ -109,7 +109,8 @@ def run_job(job_id: str, jobs_root: str, spec: dict) -> None:
         result = assemble.assemble(
             job_dir, script["segments"], img_paths, audios, out,
             progress_cb=lambda d, t, stage_detail="": set_stage(
-                "assemble", 0.72 + 0.26 * d / t, f"Segment {d}/{t}"))
+                "assemble", 0.72 + 0.26 * d / t, f"Segment {d}/{t}"),
+            subtitles=spec.get("subtitles", True))
 
         write_review_checklist(job_dir, script, cost)
         status.update({"state": "done", "stage": "done", "progress": 1.0,

@@ -31,6 +31,7 @@ class JobSpec(BaseModel):
     image_model: str = ""
     voice_id: str = ""
     style: str = "stick"
+    subtitles: bool = True
     demo: bool = False
 
 
