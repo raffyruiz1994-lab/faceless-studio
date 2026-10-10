@@ -30,9 +30,13 @@ class JobSpec(BaseModel):
     minutes: int = Field(default=16, ge=1, le=60)
     image_model: str = ""
     voice_id: str = ""
-    style: str = "stick"
+    style: str = "fosil"
     subtitles: bool = True
     demo: bool = False
+    engine: str = "fosil"              # "fosil" | "classic"
+    clips: str = "none"                # "none" | "veo" | "falai"
+    clip_every: int = Field(default=2, ge=1, le=6)
+    image_provider: str = "gemini"     # "gemini" | "falai"
 
 
 class IdeasRequest(BaseModel):
@@ -44,9 +48,11 @@ class IdeasRequest(BaseModel):
 
 class SettingsPatch(BaseModel):
     gemini_api_key: str = ""
+    falai_api_key: str = ""
     fish_audio_api_key: str = ""
     fish_voice_id: str = ""
     image_model: str = ""
+    falai_image_model: str = ""
     text_model: str = ""
 
 
@@ -67,6 +73,9 @@ def create_job(spec: JobSpec):
     if spec.demo:
         t = threading.Thread(target=demo_mod.run_demo,
                              args=(JOBS_ROOT, job_id, payload), daemon=True)
+    elif payload.get("engine", "fosil") == "fosil":
+        t = threading.Thread(target=pipeline_mod.run_fosil_job,
+                             args=(job_id, JOBS_ROOT, payload), daemon=True)
     else:
         t = threading.Thread(target=pipeline_mod.run_job,
                              args=(job_id, JOBS_ROOT, payload), daemon=True)

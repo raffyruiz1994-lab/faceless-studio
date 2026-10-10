@@ -26,6 +26,16 @@ STYLES = {
             "unless essential"
         ),
     },
+    "fosil": {
+        "label": "Doodle Fósil (tinta + pintura)",
+        "suffix": (
+            ", ink doodle mixed with digital storybook painting, visible ink strokes, "
+            "thick wobbly black outlines, small white stick figure with big expressive "
+            "cartoon eyes when people appear, warm ochre and brown palette with deep "
+            "blue water accents, paper texture, storybook illustration, "
+            "16:9 widescreen composition, no text, no words, no letters, no watermark"
+        ),
+    },
 }
 
 # Backwards-compat alias

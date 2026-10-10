@@ -9,10 +9,12 @@ import threading
 SETTINGS_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "settings.json")
 
 _DEFAULTS = {
-    "gemini_api_key": "",
+    "gemini_api_key": "",        # Google AI Studio: Gemini texto + Nano Banana + Veo
+    "falai_api_key": "",         # fal.ai: imágenes FLUX / video Kling / Veo
     "fish_audio_api_key": "",
     "fish_voice_id": "",          # Fish Audio reference_id; empty = Fish default voice
     "image_model": "gemini-3.1-flash-image-preview",  # or gemini-3-pro-image-preview
+    "falai_image_model": "fal-ai/flux/dev",
     "text_model": "gemini-2.5-flash",
 }
 
@@ -43,9 +45,11 @@ def get_public_settings() -> dict:
     s = get_settings()
     return {
         "gemini_api_key_set": bool(s.get("gemini_api_key")),
+        "falai_api_key_set": bool(s.get("falai_api_key")),
         "fish_audio_api_key_set": bool(s.get("fish_audio_api_key")),
         "fish_voice_id": s.get("fish_voice_id", ""),
         "image_model": s.get("image_model", _DEFAULTS["image_model"]),
+        "falai_image_model": s.get("falai_image_model", _DEFAULTS["falai_image_model"]),
         "text_model": s.get("text_model", _DEFAULTS["text_model"]),
     }
 
